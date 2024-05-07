@@ -62,7 +62,7 @@ class ExternalImportConnector:
             self.helper.log_warning(msg)
             self.update_existing_data = "false"
 
-    def _collect_intelligence(self, last_run : datetime) -> list:
+    def _collect_intelligence(self, now:datetime, last_run : datetime) -> list:
         """Collect intelligence from the source"""
         raise NotImplementedError
 
@@ -131,7 +131,7 @@ class ExternalImportConnector:
 
                     try:
                         # Performing the collection of intelligence
-                        bundle_objects = self._collect_intelligence(last_run=last_run_date)
+                        bundle_objects = self._collect_intelligence(now=datetime.fromtimestamp(timestamp), last_run=last_run_date)
                         if len(bundle_objects) > 0:
                             self.send_bundle(work_id, bundle_objects)
 

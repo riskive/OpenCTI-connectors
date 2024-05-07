@@ -19,7 +19,7 @@ class ZeroFoxConnector(ExternalImportConnector):
         self.client = ZeroFox(user=self.zerofox_username,
                               token=self.zerofox_password)
 
-    def _collect_intelligence(self, last_run: datetime) -> List[Any]:
+    def _collect_intelligence(self, now: datetime, last_run: datetime) -> List[Any]:
         """
         Collects intelligence from channels
 
@@ -36,11 +36,12 @@ class ZeroFoxConnector(ExternalImportConnector):
         stix_objects = []
         # ===========================
         for endpoint in [CTIEndpoint.Malware]:
+            print(f"Fetching data from {endpoint}")
             for entry in self.client.fetch_feed(endpoint, last_run):
-                stix_data = threat_feed_to_stix(endpoint)(entry)
-                print(f"{len(stix_data)} STIX2 objects have been obtained from malware entry {entry}.")
+                stix_data = threat_feed_to_stix(endpoint)(now, entry)
+                print(
+                    f"{len(stix_data)} STIX2 objects have been obtained from malware entry {entry}.")
                 stix_objects.extend(stix_data)
-        self.helper.log_debug("Creating a sample reference using STIX2...")
         main_reference = stix2.ExternalReference(
             source_name="ZeroFox Threat Intelligence",
             url="https://www.zerofox.com/threat-intelligence/",
@@ -57,6 +58,7 @@ class ZeroFoxConnector(ExternalImportConnector):
 if __name__ == "__main__":
     try:
         connector = ZeroFoxConnector()
+        print("connector created")
         connector.run()
     except Exception as e:
         print(e)
