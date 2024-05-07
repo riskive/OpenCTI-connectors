@@ -132,18 +132,8 @@ class ExternalImportConnector:
                     try:
                         # Performing the collection of intelligence
                         bundle_objects = self._collect_intelligence(last_run=last_run_date)
-                        bundle = stix2.Bundle(
-                            objects=bundle_objects, allow_custom=True
-                        ).serialize()
-
-                        self.helper.log_info(
-                            f"Sending {len(bundle_objects)} STIX objects to OpenCTI..."
-                        )
-                        self.helper.send_stix2_bundle(
-                            bundle,
-                            update=self.update_existing_data,
-                            work_id=work_id,
-                        )
+                        if len(bundle_objects) > 0:
+                            self.send_bundle(work_id, bundle_objects)
 
                     except Exception as e:
                         self.helper.log_error(str(e))
@@ -187,3 +177,17 @@ class ExternalImportConnector:
                 sys.exit(0)
 
             time.sleep(60)
+
+    def send_bundle(self, work_id, bundle_objects):
+        bundle = stix2.Bundle(
+                            objects=bundle_objects, allow_custom=True
+                        ).serialize()
+
+        self.helper.log_info(
+                            f"Sending {len(bundle_objects)} STIX objects to OpenCTI..."
+                        )
+        self.helper.send_stix2_bundle(
+                            bundle,
+                            update=self.update_existing_data,
+                            work_id=work_id,
+                        )

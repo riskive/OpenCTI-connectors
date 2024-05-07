@@ -37,26 +37,15 @@ class ZeroFoxConnector(ExternalImportConnector):
         # ===========================
         for endpoint in [CTIEndpoint.Malware]:
             for entry in self.client.fetch_feed(endpoint, last_run):
-                stix_objects.extend(threat_feed_to_stix(endpoint)(entry))
+                stix_data = threat_feed_to_stix(endpoint)(entry)
+                print(f"{len(stix_data)} STIX2 objects have been obtained from malware entry {entry}.")
+                stix_objects.extend(stix_data)
         self.helper.log_debug("Creating a sample reference using STIX2...")
         main_reference = stix2.ExternalReference(
             source_name="ZeroFox Threat Intelligence",
             url="https://www.zerofox.com/threat-intelligence/",
             description="ZeroFox provides comprehensive, accurate, and timely intelligence bundles through its API.",
         )
-
-        self.helper.log_debug("Creating an observable for the IPv4...")
-        ipv4_observable = stix2.IPv4Address(
-            value="2.2.2.2",
-            object_marking_refs=[stix2.TLP_GREEN],
-            custom_properties={
-                "description": "A sample observable created for the tutorial.",
-                "labels": ["test", "tutorial"],
-                "x_opencti_create_indicator": False,
-                "external_references": [main_reference],
-            },
-        )
-        stix_objects.append(ipv4_observable)
         # ===========================
 
         self.helper.log_info(
