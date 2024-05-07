@@ -62,7 +62,7 @@ class ExternalImportConnector:
             self.helper.log_warning(msg)
             self.update_existing_data = "false"
 
-    def _collect_intelligence(self, last_run) -> list:
+    def _collect_intelligence(self, last_run : datetime) -> list:
         """Collect intelligence from the source"""
         raise NotImplementedError
 
@@ -106,14 +106,14 @@ class ExternalImportConnector:
                 current_state = self.helper.get_state()
                 if current_state is not None and "last_run" in current_state:
                     last_run = current_state["last_run"]
-                    iso_last_run = datetime.fromtimestamp(last_run, UTC).isoformat()
+                    last_run_date = datetime.fromtimestamp(last_run, UTC)
                     self.helper.log_info(
                         f"{self.helper.connect_name} connector last run: "
                         f'{datetime.fromtimestamp(last_run, UTC).strftime("%Y-%m-%d %H:%M:%S")}'
                     )
                 else:
                     last_run = None
-                    iso_last_run = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+                    last_run_date = (datetime.now(UTC) - timedelta(days=1))
                     self.helper.log_info(
                         f"{self.helper.connect_name} connector has never run"
                     )
@@ -131,7 +131,7 @@ class ExternalImportConnector:
 
                     try:
                         # Performing the collection of intelligence
-                        bundle_objects = self._collect_intelligence(iso_last_run)
+                        bundle_objects = self._collect_intelligence(last_run=last_run_date)
                         bundle = stix2.Bundle(
                             objects=bundle_objects, allow_custom=True
                         ).serialize()

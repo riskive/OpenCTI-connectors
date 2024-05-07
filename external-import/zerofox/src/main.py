@@ -1,13 +1,13 @@
 import os
 import sys
 import time
+from datetime import datetime
+from typing import Any, List
 
 import stix2
 from lib.external_import import ExternalImportConnector
 from mappers import threat_feed_to_stix
-
-from zerofox.app import ZeroFox, CTIEndpoint
-from typing import List, Any
+from zerofox.app import CTIEndpoint, ZeroFox
 
 
 class ZeroFoxConnector(ExternalImportConnector):
@@ -19,7 +19,7 @@ class ZeroFoxConnector(ExternalImportConnector):
         self.client = ZeroFox(user=self.zerofox_username,
                               token=self.zerofox_password)
 
-    def _collect_intelligence(self, last_run) -> List[Any]:
+    def _collect_intelligence(self, last_run: datetime) -> List[Any]:
         """
         Collects intelligence from channels
 
