@@ -1,15 +1,15 @@
 import os
 import sys
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Dict
 
 import stix2
 from collectors.builder import build_collectors
-from pycti import OpenCTIConnectorHelper
-from zerofox.app.zerofox import ZeroFox
 from collectors.collector import Collector
-from time_.connectorInterval import get_interval
+from pycti import OpenCTIConnectorHelper
+from time_.interval import delta_from_interval, seconds_from_interval
+from zerofox.app.zerofox import ZeroFox
 
 ZEROFOX_REFERENCE = stix2.ExternalReference(
     source_name="ZeroFox Threat Intelligence",
@@ -24,8 +24,12 @@ class ZeroFoxConnector:
         self.helper = OpenCTIConnectorHelper({})
 
         # Specific connector attributes for external import connectors
-        self.interval = os.environ.get("CONNECTOR_RUN_EVERY", None).lower()
-        self._validate_interval()
+        self.interval = os.environ.get("CONNECTOR_RUN_EVERY", "1d").lower()
+        self._validate_interval("CONNECTOR_RUN_EVERY", self.interval)
+
+        self.first_run_interval = os.environ.get(
+            "CONNECTOR_FIRST_RUN", "1d").lower()
+        self._validate_interval("CONNECTOR_FIRST_RUN", self.first_run_interval)
 
         self.update_existing_data = self._parse_update_existing_data(
             os.environ.get("CONNECTOR_UPDATE_EXISTING_DATA", "false")
@@ -38,9 +42,9 @@ class ZeroFoxConnector:
         self.collectors: Dict[str, Collector] = build_collectors(
             self.client, None)
 
-    def _validate_interval(self):
+    def _validate_interval(self, env_var, interval):
         self.helper.log_info(
-            f"Verifying integrity of the CONNECTOR_RUN_EVERY value: '{self.interval}'"
+            f"Verifying integrity of the {env_var} value: '{interval}'"
         )
         try:
             unit = self.interval[-1]
@@ -49,7 +53,7 @@ class ZeroFoxConnector:
             int(self.interval[:-1])
         except TypeError as ex:
             msg = (
-                f"Error ({ex}) when grabbing CONNECTOR_RUN_EVERY environment variable: '{self.interval}'. "
+                f"Error ({ex}) when grabbing {env_var} environment variable: '{interval}'. "
                 "It SHOULD be a string in the format '7d', '12h', '10m', '30s' where the final letter "
                 "SHOULD be one of 'd', 'h', 'm', 's' standing for day, hour, minute, second respectively. "
             )
@@ -89,8 +93,6 @@ class ZeroFoxConnector:
         )
 
     def _parse_last_run(self, endpoint, current_state):
-        self.helper.log_debug(
-            f"current_state: {current_state}, endpoint: {endpoint}")
         if current_state and endpoint in current_state and "last_run" in current_state[endpoint]:
             last_run = current_state[endpoint]["last_run"]
             last_run_date = datetime.fromtimestamp(last_run, UTC)
@@ -99,7 +101,7 @@ class ZeroFoxConnector:
                 f'{datetime.fromtimestamp(last_run, UTC).strftime("%Y-%m-%d %H:%M:%S")}'
             )
             return last_run, last_run_date
-        last_run_date = datetime.now(UTC) - timedelta(days=1)
+        last_run_date = datetime.now(UTC) - delta_from_interval(self.first_run_interval)
         last_run = last_run_date.timestamp()
         self.helper.log_info(
             f"{self.helper.connect_name} connector has never run on endpoint {endpoint}, parsing data"
@@ -108,9 +110,9 @@ class ZeroFoxConnector:
 
     def collect_intelligence_for_endpoint(self, timestamp: int, last_run, last_run_date: datetime, collector_name: str, collector: Collector):
         # If the last_run is less than interval, skip
-        if ((timestamp - last_run) < get_interval(self.interval)):
+        if ((timestamp - last_run) < seconds_from_interval(self.interval)):
             self.helper.metric.state("idle")
-            new_interval = get_interval(
+            new_interval = seconds_from_interval(
                 self.interval) - (timestamp - last_run)
             self.helper.log_info(
                 f"{self.helper.connect_name} connector will not run for {collector_name}, "
@@ -123,7 +125,7 @@ class ZeroFoxConnector:
         self.helper.log_info(
             f"{self.helper.connect_name} will run on endpoint {collector_name}!")
         now = datetime.fromtimestamp(timestamp, UTC)
-        friendly_name = f'{self.helper.connect_name}-{collector_name} run @ {now.strftime("%Y-%m-%d %H:%M:%S")}'
+        friendly_name = f'{self.helper.connect_name} - {collector_name} run @ {now.strftime("%Y-%m-%d %H:%M:%S")}'
         work_id = self.helper.api.work.initiate_work(
             self.helper.connect_id, friendly_name
         )
@@ -169,7 +171,7 @@ class ZeroFoxConnector:
 
         self.helper.api.work.to_processed(work_id, message)
         self.helper.log_info(
-            f"Last_run for {collector_name} stored, next run in: {round(get_interval(self.interval) / 60 / 60, 2)} hours"
+            f"Last_run for {collector_name} stored, next run in: {round(seconds_from_interval(self.interval) / 60 / 60, 2)} hours"
         )
 
     def run(self) -> None:
