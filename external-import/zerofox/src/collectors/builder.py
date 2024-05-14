@@ -16,5 +16,5 @@ def build_collectors(client, feeds):
     feeds = feeds if feeds else CTIEndpoint
 
     for feed in feeds:
-        collectors[feed] = Collector(feed, threat_feed_to_stix(feed), client)
+        collectors[str(feed)] = Collector(feed, threat_feed_to_stix(feed), client)
     return collectors

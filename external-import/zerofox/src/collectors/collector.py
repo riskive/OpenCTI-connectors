@@ -14,9 +14,9 @@ class Collector:
         missed_entries = 0
         for entry in self.client.fetch_feed(self.endpoint, last_run_date):
             try:
-                stix_data = self.mapper(iso_date, entry)
+                stix_data = self.mapper(now, entry)
                 stix_objects += stix_data
             except Exception as ex:
-                logger.debug(f"There was an exception while processing entry: {ex}")
+                logger.debug(f"There was an exception while processing entry: {ex}, created={now}, {type(now)}")
                 missed_entries += 1
         return missed_entries, stix_objects
