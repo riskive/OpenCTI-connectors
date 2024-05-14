@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from stix2 import Infrastructure, Relationship
-from zerofox.domain import C2Domain
+from zerofox.domain.c2Domains import C2Domain
 
 
 def c2_domains_to_infrastructure(

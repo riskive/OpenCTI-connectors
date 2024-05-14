@@ -8,7 +8,7 @@ from stix2 import (
     Relationship,
     X509Certificate,
 )
-from zerofox.domain import Phishing
+from zerofox.domain.phishing import Phishing
 
 
 def phishing_to_infrastructure(now: str, entry: Phishing) -> List[
