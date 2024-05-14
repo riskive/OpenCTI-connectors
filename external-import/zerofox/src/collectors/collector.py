@@ -8,7 +8,7 @@ class Collector:
         self.mapper = mapper
         self.client = client
 
-    def collect_intelligence(self, now: datetime, last_run_date: datetime):
+    def collect_intelligence(self, now: datetime, last_run_date: datetime, logger):
         iso_date = now.isoformat()
         stix_objects = []
         missed_entries = 0
@@ -16,6 +16,7 @@ class Collector:
             try:
                 stix_data = self.mapper(iso_date, entry)
                 stix_objects += stix_data
-            except Exception:
+            except Exception as ex:
+                logger.debug(f"There was an exception while processing entry: {ex}")
                 missed_entries += 1
         return missed_entries, stix_objects

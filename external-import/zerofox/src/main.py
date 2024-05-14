@@ -124,15 +124,15 @@ class ZeroFoxConnector:
                         self.helper.connect_id, friendly_name
                     )
 
-                    try:
-                        # Performing the collection of intelligence
-                        self.helper.log_debug(
-                            f"{self.helper.connect_name} connector is starting the collection of objects..."
-                        )
-                        for name, collector in self.collectors.items():
+                    for name, collector in self.collectors.items():
+                        try:
+                            # Performing the collection of intelligence
+                            self.helper.log_debug(
+                                f"{self.helper.connect_name} connector is starting the collection of objects..."
+                            )
                             self.helper.log_info(f"Running collector: {name}")
                             missed_entries, bundle_objects = collector.collect_intelligence(
-                                now, last_run_date)
+                                now, last_run_date, self.helper.connector_logger)
                             if missed_entries > 0:
                                 self.helper.log_warning(
                                     f"Collector {name} missed {missed_entries} entries"
@@ -140,8 +140,8 @@ class ZeroFoxConnector:
                             if len(bundle_objects) > 0:
                                 self.send_bundle(work_id, bundle_objects)
 
-                    except Exception as e:
-                        self.helper.log_error(str(e))
+                        except Exception as e:
+                            self.helper.log_error(str(e))
 
                     # Store the current timestamp as a last run
                     message = f"{self.helper.connect_name} connector successfully run, storing last_run as {timestamp}"
