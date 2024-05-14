@@ -10,7 +10,7 @@ from pycti import OpenCTIConnectorHelper
 from zerofox.app.endpoints import CTIEndpoint
 from zerofox.app.zerofox import ZeroFox
 from collectors.collector import Collector
-from time.connectorInterval import get_interval
+from time_.connectorInterval import get_interval
 
 ZEROFOX_REFERENCE = stix2.ExternalReference(
     source_name="ZeroFox Threat Intelligence",
