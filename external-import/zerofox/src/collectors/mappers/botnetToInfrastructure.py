@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from stix2 import Infrastructure, Location, Relationship
-from zerofox.domain import Botnet
+from zerofox.domain.botnet import Botnet
 
 
 def botnet_to_infrastructure(
