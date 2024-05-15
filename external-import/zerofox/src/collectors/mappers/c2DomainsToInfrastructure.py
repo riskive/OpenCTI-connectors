@@ -28,6 +28,7 @@ def c2_domains_to_infrastructure(
             source_ref=infrastructure.id,
             target_ref=ip.id,
             relationship_type="consists-of",
+            start_time=entry.created_at,
         )
         for ip in ip_addresses
     ]
