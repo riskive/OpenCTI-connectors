@@ -39,8 +39,12 @@ class ZeroFoxConnector:
         self.zerofox_password = os.environ.get("ZEROFOX_PASSWORD", "")
         self.client = ZeroFox(user=self.zerofox_username,
                               token=self.zerofox_password)
+
         self.collectors: Dict[str, Collector] = build_collectors(
-            self.client, None)
+            client=self.client,
+            feeds=os.environ.get("ZEROFOX_COLLECTORS", None),
+            logger=self.helper.connector_logger
+        )
 
     def _validate_interval(self, env_var, interval):
         self.helper.log_info(
@@ -101,7 +105,8 @@ class ZeroFoxConnector:
                 f'{datetime.fromtimestamp(last_run, UTC).strftime("%Y-%m-%d %H:%M:%S")}'
             )
             return last_run, last_run_date
-        last_run_date = datetime.now(UTC) - delta_from_interval(self.first_run_interval)
+        last_run_date = datetime.now(
+            UTC) - delta_from_interval(self.first_run_interval)
         last_run = last_run_date.timestamp()
         self.helper.log_info(
             f"{self.helper.connect_name} connector has never run on endpoint {endpoint}, parsing data"

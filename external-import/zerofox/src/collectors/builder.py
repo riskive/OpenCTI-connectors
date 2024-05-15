@@ -1,8 +1,9 @@
+from typing import List
 from zerofox.app.endpoints import CTIEndpoint
 from collectors.collector import Collector
 from collectors.mappers import threat_feed_to_stix
 
-def build_collectors(client, feeds):
+def build_collectors(client, feeds : str = None, logger = None):
     """Builds collectors for the ZeroFox connector.
 
     Args:
@@ -13,8 +14,29 @@ def build_collectors(client, feeds):
         A dictionary of collectors.
     """
     collectors = {}
-    feeds = feeds if feeds else CTIEndpoint
+    feeds = _parse(feeds) if feeds else CTIEndpoint
 
     for feed in feeds:
         collectors[str(feed)] = Collector(feed, threat_feed_to_stix(feed), client)
+    if logger:
+        logger.debug(f"Collectors to use are {list(collectors.keys())}")
     return collectors
+
+def _parse(feeds_str: str) -> List[CTIEndpoint]:
+    """Parses a list of feeds.
+
+    Args:
+        feeds: A list of feeds.
+
+    Returns:
+        A list of CTIEndpoint objects.
+    """
+    feeds = list(map(lambda s: s.strip(), feeds_str.split(",")))
+    endpoints = []
+    for feed in feeds:
+        try:
+            endpoint = CTIEndpoint(feed)
+            endpoints.append(endpoint)
+        except ValueError:
+            pass
+    return endpoints
