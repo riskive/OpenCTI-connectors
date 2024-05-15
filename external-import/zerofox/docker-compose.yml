@@ -14,7 +14,4 @@ services:
       - CONNECTOR_RUN_EVERY=${CONNECTOR_RUN_EVERY}
       - ZEROFOX_USERNAME=ChangeMe
       - ZEROFOX_PASSWORD=ChangeMe
-    depends_on:
-      opencti-dev-platform:
-        condition: service_started
     restart: always
