@@ -132,7 +132,7 @@ class ZeroFoxConnector:
         now = datetime.fromtimestamp(timestamp, UTC)
         friendly_name = f'{self.helper.connect_name} - {collector_name} run @ {now.strftime("%Y-%m-%d %H:%M:%S")}'
         work_id = self.helper.api.work.initiate_work(
-            self.helper.connect_id, friendly_name
+            str(self.helper.connect_id), friendly_name
         )
 
         try:

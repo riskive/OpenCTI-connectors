@@ -27,6 +27,7 @@ def seconds_from_interval(interval: str):
         raise ValueError(
             f"Error when converting CONNECTOR_RUN_EVERY environment variable: '{interval}'. {str(ex)}"
         ) from ex
+    return 0
 
 
 def delta_from_interval(interval):

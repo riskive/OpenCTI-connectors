@@ -9,7 +9,6 @@ class Collector:
         self.client = client
 
     def collect_intelligence(self, now: datetime, last_run_date: datetime, logger):
-        iso_date = now.isoformat()
         stix_objects = []
         missed_entries = 0
         for entry in self.client.fetch_feed(self.endpoint, last_run_date):
