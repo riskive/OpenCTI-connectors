@@ -8,6 +8,7 @@ import stix2
 from collectors.builder import build_collectors
 from collectors.collector import Collector
 from pycti import Identity, OpenCTIConnectorHelper
+from config import ConnectorConfig
 from time_.interval import delta_from_interval, seconds_from_interval
 from zerofox.app.zerofox import ZeroFox
 
@@ -23,25 +24,21 @@ class ZeroFoxConnector:
     def __init__(self, helper: OpenCTIConnectorHelper = None):
         """ZeroFox connector for OpenCTI."""
         self.helper = helper if helper else OpenCTIConnectorHelper({})
-
-        # Specific connector attributes for external import connectors
-        self.interval = os.environ.get("CONNECTOR_RUN_EVERY", "1d").lower()
-        self._validate_interval("CONNECTOR_RUN_EVERY", self.interval)
-
-        self.first_run_interval = os.environ.get("CONNECTOR_FIRST_RUN", "1d").lower()
-        self._validate_interval("CONNECTOR_FIRST_RUN", self.first_run_interval)
+        try:
+            self.config = ConnectorConfig.get_config()
+        except Exception as e:
+            self.helper.log_error(f"Error loading configuration: {e}")
+            raise e
 
         self.update_existing_data = self._parse_update_existing_data(
             os.environ.get("CONNECTOR_UPDATE_EXISTING_DATA", "false")
         )
 
-        self.zerofox_username = os.environ.get("ZEROFOX_USERNAME", "")
-        self.zerofox_password = os.environ.get("ZEROFOX_PASSWORD", "")
-        self.client = ZeroFox(user=self.zerofox_username, token=self.zerofox_password)
+        self.client = ZeroFox(user=self.config.zerofox_username, token=self.config.zerofox_password)
 
         self.collectors: Dict[str, Collector] = build_collectors(
             client=self.client,
-            feeds=os.environ.get("ZEROFOX_COLLECTORS", None),
+            feeds=self.config.zerofox_collectors,
             logger=self.helper.connector_logger,
         )
         self.author = stix2.Identity(
@@ -51,24 +48,8 @@ class ZeroFoxConnector:
             object_marking_refs=[stix2.TLP_WHITE.id],
         )
 
-    def _validate_interval(self, env_var, interval):
-        self.helper.log_info(
-            f"Verifying integrity of the {env_var} value: '{interval}'"
-        )
-        try:
-            unit = self.interval[-1]
-            if unit not in ["d", "h", "m", "s"]:
-                raise TypeError
-            int(self.interval[:-1])
-        except TypeError as ex:
-            msg = (
-                f"Error ({ex}) when grabbing {env_var} environment variable: '{interval}'. "
-                "It SHOULD be a string in the format '7d', '12h', '10m', '30s' where the final letter "
-                "SHOULD be one of 'd', 'h', 'm', 's' standing for day, hour, minute, second respectively. "
-            )
-            self.helper.log_error(msg)
-            raise ValueError(msg) from ex
 
+    
     def _parse_update_existing_data(self, update_existing_data):
         if isinstance(update_existing_data, str) and update_existing_data.lower() in [
             "true",
@@ -96,7 +77,7 @@ class ZeroFoxConnector:
         )
         self.helper.send_stix2_bundle(
             bundle,
-            update=self.update_existing_data,
+            update=self.config.update_existing_data,
             work_id=work_id,
         )
 
@@ -114,7 +95,7 @@ class ZeroFoxConnector:
         if last_run is not None:
             self.helper.log_debug(f"Difference (Seconds): {current_time - last_run}")
         self.helper.log_debug(
-            f"Collector Interval (Seconds): {seconds_from_interval(self.interval)}"
+            f"Collector Interval (Seconds): {seconds_from_interval(self.config.interval)}"
         )
 
         if last_run is None:
@@ -122,12 +103,12 @@ class ZeroFoxConnector:
                 f"{self.helper.connect_name} will run on endpoint {collector_name}!"
             )
             last_run_date = datetime.now(UTC) - delta_from_interval(
-                self.first_run_interval
+                self.config.first_run_interval
             )
             last_run = last_run_date.timestamp()
-        elif (current_time - last_run) < seconds_from_interval(self.interval):
+        elif (current_time - last_run) < seconds_from_interval(self.config.interval):
             self.helper.metric.state("idle")
-            new_interval = seconds_from_interval(self.interval) - (
+            new_interval = seconds_from_interval(self.config.interval) - (
                 current_time - last_run
             )
             self.helper.log_info(
@@ -183,7 +164,7 @@ class ZeroFoxConnector:
 
         self.helper.api.work.to_processed(work_id, message)
         self.helper.log_info(
-            f"Last_run for {collector_name} stored, next run in: {round(seconds_from_interval(self.interval) / 60 / 60, 2)} hours"
+            f"Last_run for {collector_name} stored, next run in: {round(seconds_from_interval(self.config.interval) / 60 / 60, 2)} hours"
         )
 
     def run(self) -> None:
@@ -208,7 +189,7 @@ class ZeroFoxConnector:
                     else:
                         last_run = None
                         self.helper.log_info(
-                            f"Collector has never run. Doing an initial pull of {self.first_run_interval}"
+                            f"Collector has never run. Doing an initial pull of {self.config.first_run_interval}"
                         )
 
                     self.collect_intelligence_for_endpoint(
